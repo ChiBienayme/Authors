@@ -7,8 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ChiBienayme/expressjs-authors.git"
+    "type": "git"
   },
   "author": "Ha Chi HOANG",
   "license": "ISC",
