@@ -1,74 +1,84 @@
 const express = require("express");
-const app = express();
 
-const authors = [
-	{
-		name: "Lawrence Nowell",
-		nationality: "UK",
-		books: ["Beowulf"],
-	},
-	{
-		name: "William Shakespeare",
-		nationality: "UK",
-		books: ["Hamlet", "Othello", "Romeo and Juliet", "MacBeth"],
-	},
-	{
-		name: "Charles Dickens",
-		nationality: "US",
-		books: ["Oliver Twist", "A Christmas Carol"],
-	},
-	{
-		name: "Oscar Wilde",
-		nationality: "UK",
-		books: [
-			"The Picture of Dorian Gray",
-			"The Importance of Being Earnest",
-		],
-	},
-];
+const dotenv = require("dotenv");
+dotenv.config({
+  path: "./config.env",
+});
+const { Pool } = require("pg");
+
+const app = express();
+app.use(express.json());
+
+const Postgres = new Pool({ ssl: { rejectUnauthorized: false } });
+
+// const authors = [
+// 	{
+// 		name: "Lawrence Nowell",
+// 		nationality: "UK",
+// 		books: ["Beowulf"],
+// 	},
+// 	{
+// 		name: "William Shakespeare",
+// 		nationality: "UK",
+// 		books: ["Hamlet", "Othello", "Romeo and Juliet", "MacBeth"],
+// 	},
+// 	{
+// 		name: "Charles Dickens",
+// 		nationality: "US",
+// 		books: ["Oliver Twist", "A Christmas Carol"],
+// 	},
+// 	{
+// 		name: "Oscar Wilde",
+// 		nationality: "UK",
+// 		books: [
+// 			"The Picture of Dorian Gray",
+// 			"The Importance of Being Earnest",
+// 		],
+// 	},
+// ];
 
 // Routes
 // 1 /
-app.get("/", (_req, res) => {
-  res.send("Authors API !");
+app.get("/authors", async (_req, res) => {
+  let authors;
+  try {
+    authors = await Postgres.query("SELECT * FROM authors");
+  } catch (err) {
+    console.log(err);
+
+    return res.status(400).json({
+      message: "An error happened",
+    });
+  }
+
+  res.json(authors.rows);
 });
 
 // 2 /authors/:id
-app.get("/authors/:id", (req, res) => {
-	// const author = authors.find((x, index) => {
-	// 	const id = index + 1;
-	// 	return req.params.id === id.toString();
-	// });
+app.get("/authors/:id", async (req, res) => {
+  const author = await Postgres.query(
+    "SELECT * FROM authors WHERE authors.id=$1",
+    [req.params.id]
+  );
 
-	const author = authors[req.params.id - 1];
-
-	res.send(`${author.name}, ${author.nationality}`);
+  res.json(author.rows);
 });
 
 //3 /authors/:id/books/
 app.get("/authors/:id/books", (req, res) => {
-	const books = authors[req.params.id - 1].books;
-	res.send(books.join(", "));
+  const author = await Postgres.query(
+    "SELECT books FROM authors WHERE authors.id=$1",
+    [req.params.id]
+  );
+
+  res.json(author.rows);
 });
 
-// 4a /json/authors/:id
-app.get("/json/authors/:id", (req, res) => {
-	const author = authors[req.params.id];
-	delete author.books;
-	res.json(author);
-});
 
-// 4b /json/authors/:id/books
-app.get("/json/authors/:id/books", (req, res) => {
-	const books = authors[req.params.id].books;
-	res.json({
-		books,
-	});
-});
 
 // Handle errors
 app.get("*", (req, res) => {
-	res.send("Page not found - 404");
+  res.send("Page not found - 404");
 });
 
 // Start the server
